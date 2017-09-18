@@ -9,7 +9,7 @@ def main():
 
     if len(sys.argv) < 2:
         print("No config file provided, using defaults.")
-        config["DEFAULT"] = get_defaults()
+        config["DEFAULT"] = get_default_config()
     else:
         config_filename = sys.argv[1]
         if(os.path.exists(config_filename)):
@@ -25,8 +25,13 @@ def main():
 
 
 
-def get_defaults():
+def get_default_config():
     defaults = {}
+	
+    #
+    # Makefile variables.
+    #
+
     defaults["CC"]      = "g++"
     defaults["CFLAGS"]  = "-Wall -pedantic -std=c++11 -g -ggdb"
 
@@ -44,6 +49,12 @@ def get_defaults():
     defaults["COMPILE_WITH_INCLUDES"] = defaults["COMPILE_COMMAND"] + \
                                         " " +  defaults["INCLUDE_DIRS"]
 
+
+    #
+    # Environment variables.
+    #
+    defaults["src_dir"] = "/src"
+
     return defaults
 
 
@@ -56,3 +67,9 @@ def get_lib_dirs():
 
 if __name__ == "__main__":
     main()
+
+
+
+
+
+
