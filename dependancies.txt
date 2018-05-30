@@ -1,0 +1,8 @@
+main.o: ..\GLEngine\src\main\main.cpp ..\GLEngine\src\main\main.h \
+ ..\GLEngine\src\main\../model/EntityManager.h \
+ ..\GLEngine\src\main\../model/Entity.h \
+ ..\GLEngine\src\main\../model/../util/containers/LinkedList.h \
+ ..\GLEngine\src\main\../display/Display.h \
+ ..\GLEngine\src\main\../model/Drawable.h \
+ ..\GLEngine\src\main\../model/Shader.h \
+ ..\GLEngine\src\main\../model/Shader.h
