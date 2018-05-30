@@ -175,7 +175,7 @@ def get_default_config():
     # Set up environment variables.
     env_vars = {}
 
-    env_vars["PROJ_ROOT_DIR"] = ".."
+    env_vars["PROJ_ROOT_DIR"] = "."
     env_vars["PROJ_SOURCE_DIR"]  = env_vars["PROJ_ROOT_DIR"] + "/src"
 
     env_vars["MAKEFILE_NAME"] = "Makefile"
@@ -261,13 +261,41 @@ riun:
 
 def parse_flag_contents(config, contents, start_line, end_line):
     # At this point the tag should be valid, so we don't worry about keyerror here.
+    tag = contents[start_line]
 
-    to_edit = config[contents[start_line]]
+    curr_line_number = start_line + 1
 
-    for ii in range(start_line + 1, end_line):
-        pass
+    if tag == ":ENVIRONMENT:" or tag == ":VARS:":
+        while curr_line_number != end_line:
+            curr_line = contents[curr_line_number]
 
+            # Skip comments and empty lines.
+            if len(curr_line) == 0 or curr_line.startswith("#"):
+                curr_line_number += 1
+                continue
 
+            split_line = curr_line.split("=", 1)
+
+            var = split_line[0]
+            value = split_line[1]
+
+            if var not in config[tag].keys():
+                raise InvalidFileFormatError("Unknown variable '{}' in '{}'.".format(var, tag))
+
+            config[tag][var] = value
+            curr_line_number += 1
+
+        return
+
+    if tag == ":ALLWAYS:":
+        allways_str = ""
+        for ii in range(start_line + 1, end_line):
+            allways_str += contents[ii] + "\n"
+
+        config[tag] = allways_str
+        return
+
+    print("\tUnprocessed tag:", tag)
 
 
 # ======= Entry Point ========
