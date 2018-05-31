@@ -1,4 +1,6 @@
-import sys
+import sys # For command line args
+import os  # For file enumeration
+
 
 # ========== Self Defined Errors ============
 class InvalidFileFormatError(Exception):
@@ -41,9 +43,18 @@ def main():
         # Use the config.
         print("Creating makefile based on config file...")
 
-    create_makefile(config)
+    discover_makefile_rules(config)
+
+    # create_makefile(config)
 
     return 0
+
+# ======== Makefile Rule Creation  =========
+def discover_makefile_rules(config):
+    source_dir = config[":ENVIRONMENT:"]["PROJ_SOURCE_DIR"]
+
+    for file in os.listdir(source_dir):
+        print(file)
 
 
 # ====== Makefile Creation Functions =======
@@ -140,6 +151,10 @@ def parse_config_file(config_file_name):
 
     except FileNotFoundError as e:
         print("\tConfig file '{}' not found.".format(config_file_name))
+        using_default = True
+
+    except IsADirectoryError as e:
+        print("\tGiven config file '{}' is a directory!".format(config_file_name))
         using_default = True
 
     except InvalidFileFormatError as e:
