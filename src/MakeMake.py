@@ -53,8 +53,28 @@ def main():
 def discover_makefile_rules(config):
     source_dir = config[":ENVIRONMENT:"]["PROJ_SOURCE_DIR"]
 
-    for file in os.listdir(source_dir):
-        print(file)
+    abs_src_dir = os.path.abspath(source_dir)
+
+    total_files = get_all_dependancies(config, abs_src_dir)
+
+    print("Checked {} files.".format(total_files))
+
+def get_all_dependancies(config, previous_dir_path, files_checked = 0, depth = 0):
+    # Get all files in the current directory.
+    for file in os.listdir(previous_dir_path):
+        abs_file_path = previous_dir_path + '\\' + file
+
+        # Recurse if the file is a directory, else analyze file for dependancies.
+        if os.path.isdir(abs_file_path):
+            #print("Entering {}".format(abs_file_path))
+            files_checked = get_all_dependancies(config, abs_file_path, files_checked, depth + 1)
+        else:
+            # Skip non-c/cpp files.
+            if (file.endswith('.c') or file.endswith('.cpp') or file.endswith('.cc')):
+                print("{}Anaylzing {}".format("  " * depth, abs_file_path))
+                files_checked += 1
+
+    return files_checked
 
 
 # ====== Makefile Creation Functions =======
