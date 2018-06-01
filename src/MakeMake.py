@@ -2,6 +2,11 @@ import subprocess # To run g++ commands to gather dependancies.
 import sys # For command line args.
 import os  # For file enumeration.
 
+"""
+@TODO: Modify this to use objects for rules and files, so that it's not just
+       a bunch of string passing, and so that the objects can have extra
+       rules attached to them. (Will help for tests, and CopyLibs).
+"""
 
 # ========== Self Defined Errors ============
 class InvalidFileFormatError(Exception):
