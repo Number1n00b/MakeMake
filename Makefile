@@ -15,6 +15,7 @@ LINK_COMMANDS= # Empty
 
 COMPILE_WITH_CFLAGS=$(CC) $(CFLAGS)
 COMPILE_WITH_INCLUDES=$(CC) $(CFLAGS) $(INCLUDE_DIRS)
+
 OBJ_FILES=\
 	$(OBJ_DIR)/empty.o\
 	$(OBJ_DIR)/a.o\
@@ -23,6 +24,36 @@ OBJ_FILES=\
 	$(OBJ_DIR)/really_long_filename_and_I_mean_really_long_line_longer_than_80_characters_long_lol.o\
 	$(OBJ_DIR)/and_another_one.o\
 	$(OBJ_DIR)/c.o
+
+all: executable
+
+executable: $(OBJ_FILES)
+	$(CC) $(OBJ_FILES) -o $(EXE_DIR)/$(EXE_NAME) $(LIB_DIRS) $(LINK_COMMANDS)
+
+$(OBJ_DIR)/empty.o: src/empty.cpp
+	$(COMPILE_WITH_INCLUDES) src/empty.cpp -o $(OBJ_DIR)/empty.o
+
+$(OBJ_DIR)/a.o: src/stuff/a.cpp
+	$(COMPILE_WITH_INCLUDES) src/stuff/a.cpp -o $(OBJ_DIR)/a.o
+
+$(OBJ_DIR)/another_quite_long_file.o: \
+                                      src/stuff/morestuff/another_quite_long_file.cpp
+	$(COMPILE_WITH_INCLUDES) src/stuff/morestuff/another_quite_long_file.cpp -o $(OBJ_DIR)/another_quite_long_file.o
+
+$(OBJ_DIR)/b.o: src/stuff/morestuff/b.c \
+                src/things/c.h
+	$(COMPILE_WITH_INCLUDES) src/stuff/morestuff/b.c -o $(OBJ_DIR)/b.o
+
+$(OBJ_DIR)/really_long_filename_and_I_mean_really_long_line_longer_than_80_characters_long_lol.o: \
+                                                                                                  src/stuff/really_long_filename_and_I_mean_really_long_line_longer_than_80_characters_long_lol.c
+	$(COMPILE_WITH_INCLUDES) src/stuff/really_long_filename_and_I_mean_really_long_line_longer_than_80_characters_long_lol.c -o $(OBJ_DIR)/really_long_filename_and_I_mean_really_long_line_longer_than_80_characters_long_lol.o
+
+$(OBJ_DIR)/and_another_one.o: \
+                              src/things/and_another_one.c
+	$(COMPILE_WITH_INCLUDES) src/things/and_another_one.c -o $(OBJ_DIR)/and_another_one.o
+
+$(OBJ_DIR)/c.o: src/things/c.cpp
+	$(COMPILE_WITH_INCLUDES) src/things/c.cpp -o $(OBJ_DIR)/c.o
 
 
 # Run stuff

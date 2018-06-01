@@ -56,7 +56,7 @@ def discover_makefile_rules(config):
 
     config["MAKE_RULES"] = {}
     total_files = get_all_dependancies(config, abs_src_dir)
-    make_rule_pahts_relative(config)
+    make_rule_paths_relative(config)
 
     print("Generated {} rules.".format(total_files))
 
@@ -75,13 +75,29 @@ def get_all_dependancies(config, previous_dir_path, files_checked = 0):
             if (file.endswith('.c') or file.endswith('.cpp') or file.endswith('.cc')):
                 files_checked += 1
                 result, _ = run_command(["g++", "-std=c++11", "-MM", abs_file_path])
+                result = replace_slashes(result)
 
-                config["MAKE_RULES"][abs_file_path] = result
-
+                abs_root_path = os.path.abspath(config[":ENVIRONMENT:"]["PROJ_ROOT_DIR"])
+                config["MAKE_RULES"][remove_proj_root_from_path(abs_file_path, abs_root_path)] = result
     return files_checked
 
 
-def make_rule_pahts_relative(config):
+def replace_slashes(string):
+    result = list(string)
+    for ii in range(0, len(result) - 1):
+        if result[ii] == '\\' and not result[ii + 1] == '\n' and not result[ii + 2] == '\n':
+            result[ii] = "/"
+
+    return "".join(result)
+
+
+def remove_proj_root_from_path(path, abs_proj_root):
+    path = path.replace(abs_proj_root + "\\", "")
+    path = path.replace(abs_proj_root.lower() + "\\", "")
+    return path
+
+
+def make_rule_paths_relative(config):
     abs_root_path = os.path.abspath(config[":ENVIRONMENT:"]["PROJ_ROOT_DIR"])
     for rule in config["MAKE_RULES"].keys():
         config["MAKE_RULES"][rule] = config["MAKE_RULES"][rule].replace(abs_root_path + "\\", "")
@@ -104,7 +120,7 @@ def create_makefile(config):
 
         write_makefile_vars(makefile, config[":VARS:"])
 
-        write_makefile_rules(makefile, config["MAKE_RULES"])
+        write_makefile_rules(makefile, config)
 
         write_makefile_tests(makefile, config[":TESTS:"])
 
@@ -128,13 +144,54 @@ def write_makefile_vars(makefile, make_vars):
     makefile.write("LINK_COMMANDS=" + make_vars["LINK_COMMANDS"] + "\n" + "\n")
 
     makefile.write("COMPILE_WITH_CFLAGS=" + make_vars["COMPILE_WITH_CFLAGS"] + "\n")
-    makefile.write("COMPILE_WITH_INCLUDES=" + make_vars["COMPILE_WITH_INCLUDES"] + "\n")
+    makefile.write("COMPILE_WITH_INCLUDES=" + make_vars["COMPILE_WITH_INCLUDES"] + "\n" + "\n")
 
     obj_files_str = obj_list_to_str(make_vars["OBJ_FILES"])
     makefile.write("OBJ_FILES=" + obj_files_str + "\n" + "\n")
 
-def write_makefile_rules(makefile, make_rules):
-    pass
+
+def write_makefile_rules(makefile, config):
+    abs_root_path = os.path.abspath(config[":ENVIRONMENT:"]["PROJ_ROOT_DIR"]).replace("\\", "/")
+
+    make_rules = config["MAKE_RULES"]
+
+    makefile.write("all: executable\n\n")
+
+    makefile.write("executable: $(OBJ_FILES)\n")
+    makefile.write("\t$(CC) $(OBJ_FILES) -o $(EXE_DIR)/$(EXE_NAME) $(LIB_DIRS) $(LINK_COMMANDS)\n\n")
+
+    obj_prefix = "$(OBJ_DIR)/"
+
+    for rule in make_rules:
+        rel_source_name = rule.replace("\\", "/")
+        deps = make_rules[rule].replace(abs_root_path + "/", "")
+        deps = deps.replace(abs_root_path.lower() + "/", "")
+        deps = fix_format(deps)
+
+        obj_name = deps.split(":")[0]
+
+        makefile.write(obj_prefix + deps)
+        command = "\t$(COMPILE_WITH_INCLUDES) " + rel_source_name + " -o " + obj_prefix + obj_name
+        makefile.write(command + "\n" + "\n")
+
+
+def fix_format(deps):
+    # Remove redundant newline stuff.
+    deps = deps.replace("\n", "")
+    deps = deps.replace("\r", "\n")
+
+    # Prettify the padding.
+    padding_length = len(deps.split(":")[0]) + 2 + len("$(OBJ_DIR)/")
+    result = list(deps)
+
+    prev_char = ''
+    for ii in range(0, len(result)):
+        if prev_char == '\\':
+            result[ii + 1] = padding_length * " "
+
+        prev_char = result[ii]
+
+    return "".join(result)
 
 
 def write_makefile_tests(makefile, make_tests):
