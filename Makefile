@@ -3,57 +3,93 @@ CC=g++
 CFLAGS=-std=c++11 -Wall -pedantic -g -ggdb -c
 
 EXE_DIR=bin
-TEST_DIR=bin/tests
+TEST_DIR=asdasdasd
 OBJ_DIR=bin/obj
 
-EXE_NAME=program
+EXE_NAME=the_program
 
-INCLUDE_DIRS= # Empty
+INCLUDE_DIRS=-I include/SDL2 -I include/glew -I include/glm #-I include/FreeType2
 
-LIB_DIRS= # Empty
-LINK_COMMANDS= # Empty
+LIB_DIRS=-L lib/glew -L lib/sdl2 #-L lib/FreeType2
+LINK_COMMANDS=-lsdl2 -lopengl32 -lglew32 #-lfreetype2
 
 COMPILE_WITH_CFLAGS=$(CC) $(CFLAGS)
 COMPILE_WITH_INCLUDES=$(CC) $(CFLAGS) $(INCLUDE_DIRS)
 
 OBJ_FILES=\
-	$(OBJ_DIR)/empty.o\
-	$(OBJ_DIR)/a.o\
-	$(OBJ_DIR)/another_quite_long_file.o\
-	$(OBJ_DIR)/b.o\
-	$(OBJ_DIR)/really_long_filename_and_I_mean_really_long_line_longer_than_80_characters_long_lol.o\
-	$(OBJ_DIR)/and_another_one.o\
-	$(OBJ_DIR)/c.o
+	$(OBJ_DIR)/Display.o\
+	$(OBJ_DIR)/main.o\
+	$(OBJ_DIR)/Drawable.o\
+	$(OBJ_DIR)/Entity.o\
+	$(OBJ_DIR)/EntityManager.o\
+	$(OBJ_DIR)/Shader.o\
+	$(OBJ_DIR)/LinkedList.o\
+	$(OBJ_DIR)/MathUtil.o\
+	$(OBJ_DIR)/Util.o
 
 all: executable
 
 executable: $(OBJ_FILES)
 	$(CC) $(OBJ_FILES) -o $(EXE_DIR)/$(EXE_NAME) $(LIB_DIRS) $(LINK_COMMANDS)
 
-$(OBJ_DIR)/empty.o: src/empty.cpp
-	$(COMPILE_WITH_INCLUDES) src/empty.cpp -o $(OBJ_DIR)/empty.o
+$(OBJ_DIR)/Display.o: src/display/Display.cpp \
+                      src/display/Display.h \
+                      src/main/main.h \
+                      src/model/entitymanager.h \
+                      src/model/Entity.h \
+                      src/util/containers/linkedlist.h
+	$(COMPILE_WITH_INCLUDES) src/display/Display.cpp -o $(OBJ_DIR)/Display.o
 
-$(OBJ_DIR)/a.o: src/stuff/a.cpp
-	$(COMPILE_WITH_INCLUDES) src/stuff/a.cpp -o $(OBJ_DIR)/a.o
+$(OBJ_DIR)/main.o: src/main/main.cpp \
+                   src/main/main.h \
+                   src/model/entitymanager.h \
+                   src/model/Entity.h \
+                   src/util/containers/linkedlist.h \
+                   src/display/display.h \
+                   src/model/drawable.h \
+                   src/model/Shader.h \
+                   src/model/shader.h
+	$(COMPILE_WITH_INCLUDES) src/main/main.cpp -o $(OBJ_DIR)/main.o
 
-$(OBJ_DIR)/another_quite_long_file.o: \
-                                      src/stuff/morestuff/another_quite_long_file.cpp
-	$(COMPILE_WITH_INCLUDES) src/stuff/morestuff/another_quite_long_file.cpp -o $(OBJ_DIR)/another_quite_long_file.o
+$(OBJ_DIR)/Drawable.o: src/model/Drawable.cpp \
+                       src/model/Drawable.h \
+                       src/model/Entity.h \
+                       src/model/Shader.h
+	$(COMPILE_WITH_INCLUDES) src/model/Drawable.cpp -o $(OBJ_DIR)/Drawable.o
 
-$(OBJ_DIR)/b.o: src/stuff/morestuff/b.c \
-                src/things/c.h
-	$(COMPILE_WITH_INCLUDES) src/stuff/morestuff/b.c -o $(OBJ_DIR)/b.o
+$(OBJ_DIR)/Entity.o: src/model/Entity.cpp \
+                     src/main/main.h \
+                     src/model/entitymanager.h \
+                     src/model/Entity.h \
+                     src/util/containers/linkedlist.h \
+                     src/model/Entity.h
+	$(COMPILE_WITH_INCLUDES) src/model/Entity.cpp -o $(OBJ_DIR)/Entity.o
 
-$(OBJ_DIR)/really_long_filename_and_I_mean_really_long_line_longer_than_80_characters_long_lol.o: \
-                                                                                                  src/stuff/really_long_filename_and_I_mean_really_long_line_longer_than_80_characters_long_lol.c
-	$(COMPILE_WITH_INCLUDES) src/stuff/really_long_filename_and_I_mean_really_long_line_longer_than_80_characters_long_lol.c -o $(OBJ_DIR)/really_long_filename_and_I_mean_really_long_line_longer_than_80_characters_long_lol.o
+$(OBJ_DIR)/EntityManager.o: \
+                            src/model/EntityManager.cpp \
+                            src/model/EntityManager.h \
+                            src/model/Entity.h \
+                            src/util/containers/linkedlist.h \
+                            src/model/Drawable.h \
+                            src/model/Shader.h
+	$(COMPILE_WITH_INCLUDES) src/model/EntityManager.cpp -o $(OBJ_DIR)/EntityManager.o
 
-$(OBJ_DIR)/and_another_one.o: \
-                              src/things/and_another_one.c
-	$(COMPILE_WITH_INCLUDES) src/things/and_another_one.c -o $(OBJ_DIR)/and_another_one.o
+$(OBJ_DIR)/Shader.o: src/model/Shader.cpp \
+                     src/model/Shader.h
+	$(COMPILE_WITH_INCLUDES) src/model/Shader.cpp -o $(OBJ_DIR)/Shader.o
 
-$(OBJ_DIR)/c.o: src/things/c.cpp
-	$(COMPILE_WITH_INCLUDES) src/things/c.cpp -o $(OBJ_DIR)/c.o
+$(OBJ_DIR)/LinkedList.o: \
+                         src/util/containers/LinkedList.cpp \
+                         src/util/containers/LinkedList.h
+	$(COMPILE_WITH_INCLUDES) src/util/containers/LinkedList.cpp -o $(OBJ_DIR)/LinkedList.o
+
+$(OBJ_DIR)/MathUtil.o: src/util/MathUtil.cpp \
+                       src/util/MathUtil.h
+	$(COMPILE_WITH_INCLUDES) src/util/MathUtil.cpp -o $(OBJ_DIR)/MathUtil.o
+
+$(OBJ_DIR)/Util.o: src/util/Util.cpp \
+                   src/util/Util.h
+	$(COMPILE_WITH_INCLUDES) src/util/Util.cpp -o $(OBJ_DIR)/Util.o
 
 
 # Run stuff
@@ -65,12 +101,14 @@ run:
 runVal:
 	valgrind ./$(EXE_DIR)/$(EXE_NAME)
 
-
+# THIS IS A TEST OF IF IT WORKS LOL
 # Clean
 .PHONY: clean
 clean:
 	rm -rf $(OBJ_DIR)/*.o $(EXE_DIR)/$(EXE_NAME) $(EXE_DIR)/*.dll $(TEST_DIR)/* *~*
 
+test:
+	echo LOL
 
 # Memes
 .PHONY: urn
@@ -90,5 +128,6 @@ ruin:
 
 .PHONY: riun
 riun:
-	@echo "Dam dude... can't even ruin it right. :\"
-    
+	@echo "Dam dude... can't even ruin it right. :\\"
+
+

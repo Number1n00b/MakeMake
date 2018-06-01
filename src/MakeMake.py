@@ -55,6 +55,10 @@ def discover_makefile_rules(config):
     abs_src_dir = os.path.abspath(source_dir)
 
     config["MAKE_RULES"] = {}
+    if not os.path.exists(abs_src_dir):
+        print("Error: The given source directory '{}' does not exist.".format(abs_src_dir))
+        exit(-1)
+
     total_files = get_all_dependancies(config, abs_src_dir)
     make_rule_paths_relative(config)
 
