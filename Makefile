@@ -32,64 +32,64 @@ all: executable
 executable: $(OBJ_FILES)
 	$(CC) $(OBJ_FILES) -o $(EXE_DIR)/$(EXE_NAME) $(LIB_DIRS) $(LINK_COMMANDS)
 
-$(OBJ_DIR)/Display.o: src/display/Display.cpp \
-                      src/display/Display.h \
-                      src/main/main.h \
-                      src/model/entitymanager.h \
-                      src/model/Entity.h \
-                      src/util/containers/linkedlist.h
-	$(COMPILE_WITH_INCLUDES) src/display/Display.cpp -o $(OBJ_DIR)/Display.o
+$(OBJ_DIR)/Display.o: sauce/display/Display.cpp \
+                      sauce/display/Display.h \
+                      sauce/main/main.h \
+                      sauce/model/EntityManager.h \
+                      sauce/model/Entity.h \
+                      sauce/util/containers/LinkedList.h
+	$(COMPILE_WITH_INCLUDES) sauce/display/Display.cpp -o $(OBJ_DIR)/Display.o
 
-$(OBJ_DIR)/main.o: src/main/main.cpp \
-                   src/main/main.h \
-                   src/model/entitymanager.h \
-                   src/model/Entity.h \
-                   src/util/containers/linkedlist.h \
-                   src/display/display.h \
-                   src/model/drawable.h \
-                   src/model/Shader.h \
-                   src/model/shader.h
-	$(COMPILE_WITH_INCLUDES) src/main/main.cpp -o $(OBJ_DIR)/main.o
+$(OBJ_DIR)/main.o: sauce/main/main.cpp \
+                   sauce/main/main.h \
+                   sauce/model/EntityManager.h \
+                   sauce/model/Entity.h \
+                   sauce/util/containers/LinkedList.h \
+                   sauce/display/Display.h \
+                   sauce/model/Drawable.h \
+                   sauce/model/Shader.h \
+                   sauce/model/Shader.h
+	$(COMPILE_WITH_INCLUDES) sauce/main/main.cpp -o $(OBJ_DIR)/main.o
 
-$(OBJ_DIR)/Drawable.o: src/model/Drawable.cpp \
-                       src/model/Drawable.h \
-                       src/model/Entity.h \
-                       src/model/Shader.h
-	$(COMPILE_WITH_INCLUDES) src/model/Drawable.cpp -o $(OBJ_DIR)/Drawable.o
+$(OBJ_DIR)/Drawable.o: sauce/model/Drawable.cpp \
+                       sauce/model/Drawable.h \
+                       sauce/model/Entity.h \
+                       sauce/model/Shader.h
+	$(COMPILE_WITH_INCLUDES) sauce/model/Drawable.cpp -o $(OBJ_DIR)/Drawable.o
 
-$(OBJ_DIR)/Entity.o: src/model/Entity.cpp \
-                     src/main/main.h \
-                     src/model/entitymanager.h \
-                     src/model/Entity.h \
-                     src/util/containers/linkedlist.h \
-                     src/model/Entity.h
-	$(COMPILE_WITH_INCLUDES) src/model/Entity.cpp -o $(OBJ_DIR)/Entity.o
+$(OBJ_DIR)/Entity.o: sauce/model/Entity.cpp \
+                     sauce/main/main.h \
+                     sauce/model/EntityManager.h \
+                     sauce/model/Entity.h \
+                     sauce/util/containers/LinkedList.h \
+                     sauce/model/Entity.h
+	$(COMPILE_WITH_INCLUDES) sauce/model/Entity.cpp -o $(OBJ_DIR)/Entity.o
 
 $(OBJ_DIR)/EntityManager.o: \
-                            src/model/EntityManager.cpp \
-                            src/model/EntityManager.h \
-                            src/model/Entity.h \
-                            src/util/containers/linkedlist.h \
-                            src/model/Drawable.h \
-                            src/model/Shader.h
-	$(COMPILE_WITH_INCLUDES) src/model/EntityManager.cpp -o $(OBJ_DIR)/EntityManager.o
+                            sauce/model/EntityManager.cpp \
+                            sauce/model/EntityManager.h \
+                            sauce/model/Entity.h \
+                            sauce/util/containers/LinkedList.h \
+                            sauce/model/Drawable.h \
+                            sauce/model/Shader.h
+	$(COMPILE_WITH_INCLUDES) sauce/model/EntityManager.cpp -o $(OBJ_DIR)/EntityManager.o
 
-$(OBJ_DIR)/Shader.o: src/model/Shader.cpp \
-                     src/model/Shader.h
-	$(COMPILE_WITH_INCLUDES) src/model/Shader.cpp -o $(OBJ_DIR)/Shader.o
+$(OBJ_DIR)/Shader.o: sauce/model/Shader.cpp \
+                     sauce/model/Shader.h
+	$(COMPILE_WITH_INCLUDES) sauce/model/Shader.cpp -o $(OBJ_DIR)/Shader.o
 
 $(OBJ_DIR)/LinkedList.o: \
-                         src/util/containers/LinkedList.cpp \
-                         src/util/containers/LinkedList.h
-	$(COMPILE_WITH_INCLUDES) src/util/containers/LinkedList.cpp -o $(OBJ_DIR)/LinkedList.o
+                         sauce/util/containers/LinkedList.cpp \
+                         sauce/util/containers/LinkedList.h
+	$(COMPILE_WITH_INCLUDES) sauce/util/containers/LinkedList.cpp -o $(OBJ_DIR)/LinkedList.o
 
-$(OBJ_DIR)/MathUtil.o: src/util/MathUtil.cpp \
-                       src/util/MathUtil.h
-	$(COMPILE_WITH_INCLUDES) src/util/MathUtil.cpp -o $(OBJ_DIR)/MathUtil.o
+$(OBJ_DIR)/MathUtil.o: sauce/util/MathUtil.cpp \
+                       sauce/util/MathUtil.h
+	$(COMPILE_WITH_INCLUDES) sauce/util/MathUtil.cpp -o $(OBJ_DIR)/MathUtil.o
 
-$(OBJ_DIR)/Util.o: src/util/Util.cpp \
-                   src/util/Util.h
-	$(COMPILE_WITH_INCLUDES) src/util/Util.cpp -o $(OBJ_DIR)/Util.o
+$(OBJ_DIR)/Util.o: sauce/util/Util.cpp \
+                   sauce/util/Util.h
+	$(COMPILE_WITH_INCLUDES) sauce/util/Util.cpp -o $(OBJ_DIR)/Util.o
 
 
 # Run stuff

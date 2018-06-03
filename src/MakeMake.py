@@ -18,6 +18,9 @@ VALID_CONFIG_FLAGS = {":ENVIRONMENT:" : ":END_ENVIRONMENT:", ":VARS:" : ":END_VA
 
 # ============= Main Program ================
 
+
+# ======== Data structure for config ========
+
 # Command line arguments: (Will override defaults, and everything in config file)
 # --root-dir
 # --src-dir
@@ -88,6 +91,7 @@ def get_all_dependancies(config, previous_dir_path, files_checked = 0):
 
                 abs_root_path = os.path.abspath(config[":ENVIRONMENT:"]["PROJ_ROOT_DIR"])
                 config["MAKE_RULES"][remove_proj_root_from_path(abs_file_path, abs_root_path)] = result
+
     return files_checked
 
 
@@ -100,6 +104,39 @@ def replace_slashes(string):
     return "".join(result)
 
 
+def re_capitalize_path(rule):
+    second_half = rule.split(":")[1]
+    old_path = second_half.replace(" ", "")
+    old_path = old_path.replace("\n", "")
+    old_path = old_path.replace("\t", "")
+    old_path = old_path.replace("\r", "")
+
+    if old_path[0] == '\\':
+        old_path = old_path.replace("\\", "", 1)
+
+    # At this point the old path is a list of dependancies seperated by '\'
+    dep_list = old_path.split('\\')
+    for dep in dep_list:
+        to_be_replaced, replaced_with = find_real_file_name(dep)
+        rule = rule.replace(to_be_replaced, replaced_with)
+
+    return rule
+
+
+def find_real_file_name(rel_path):
+    file = rel_path.split("/")[-1]
+
+    dir_path_list = rel_path.split("/")[0:-1]
+    dir_path =  os.getcwd()
+    for dir in dir_path_list:
+        dir_path += "/" + dir
+
+    for real_file in os.listdir(dir_path):
+        if real_file.lower() == file.lower():
+            return rel_path, rel_path.replace(file, real_file)
+
+    raise FileNotFoundError("Could not find real file name for '{}'".format(file))
+
 def remove_proj_root_from_path(path, abs_proj_root):
     path = path.replace(abs_proj_root + "\\", "")
     path = path.replace(abs_proj_root.lower() + "\\", "")
@@ -111,6 +148,7 @@ def make_rule_paths_relative(config):
     for rule in config["MAKE_RULES"].keys():
         config["MAKE_RULES"][rule] = config["MAKE_RULES"][rule].replace(abs_root_path + "\\", "")
         config["MAKE_RULES"][rule] = config["MAKE_RULES"][rule].replace(abs_root_path.lower() + "\\", "")
+
 
 # ====== Makefile Creation Functions =======
 def create_makefile(config):
@@ -178,6 +216,8 @@ def write_makefile_rules(makefile, config):
         deps = fix_format(deps)
 
         obj_name = deps.split(":")[0]
+
+        deps = re_capitalize_path(deps)
 
         makefile.write(obj_prefix + deps)
         command = "\t$(COMPILE_WITH_INCLUDES) " + rel_source_name + " -o " + obj_prefix + obj_name
