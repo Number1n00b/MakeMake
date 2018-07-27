@@ -141,8 +141,7 @@ def fix_dependancy_path_format(config):
 
 
 def fix_format(dependancy_list):
-    # Remove redundant newline stuff.
-    dependancy_list = dependancy_list.replace("\n", "")
+    # Make newline characters uniform to linux.
     dependancy_list = dependancy_list.replace("\r", "\n")
 
     # Prettify the padding.
