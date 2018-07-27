@@ -110,6 +110,9 @@ def main():
     if(len(sys.argv) > 1):
         print("Creating makefile from root '{}'".format(sys.argv[1]))
         config.set_project_root_directory(sys.argv[1])
+
+        if(len(sys.argv) > 2 and sys.argv[2].startswith("--")):
+            config.set_makefile_path(sys.argv[2].split("=")[-1])
     else:
         print("Creating default makefile...")
 
@@ -176,11 +179,16 @@ def fix_dependancy_path_capitilisation(config):
             config.file_dependancies[file] = config.file_dependancies[file].replace(to_be_replaced, replaced_with)
 
 def find_real_file_name(rel_path, config):
-    file = rel_path.split("/")[-1]
+    # Check that the rel path is not just a file in the root directory.
+    if("/" in rel_path):
+        file = rel_path.split("/")[-1]
+        incorrect_relative_split_path = rel_path.split("/")[0:-1]
+    else:
+        file = rel_path
+        incorrect_relative_split_path = [""]
 
-    dir_path_list = rel_path.split("/")[0:-1]
-    dir_path = config.abs_project_root_directory
-    for dir in dir_path_list:
+    dir_path = config.abs_project_root_directory # Start at the project root
+    for dir in incorrect_relative_split_path:
         dir_path += "/" + dir
 
     for real_file in os.listdir(dir_path):
@@ -308,7 +316,8 @@ def obj_list_to_str(obj_list):
     obj_prefix = "\t$(OBJ_DIR)/"
 
     obj_list = sorted(obj_list, key=len, reverse=True)
-    max_len = len(obj_list[0])
+    if not len(obj_list) == 0:
+        max_len = len(obj_list[0])
 
     for obj in obj_list:
         if obj == obj_list[-1]:
