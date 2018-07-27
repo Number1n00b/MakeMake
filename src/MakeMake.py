@@ -155,7 +155,10 @@ def fix_format(dependancy_list):
 
         prev_char = result[ii]
 
-    return "".join(result)
+    result = "".join(result)
+    result += "\n"
+
+    return result
 
 def fix_dependancy_path_capitilisation(config):
     keys = list(config.file_dependancies.keys())
