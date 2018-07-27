@@ -113,8 +113,6 @@ def main():
     else:
         print("Creating default makefile...")
 
-    config.set_makefile_path("./TestMakefile")
-
     discover_dependancies(config)
 
     print("\nEnsuring path format correctness...")
