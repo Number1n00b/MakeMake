@@ -22,7 +22,7 @@ OBJ_FILES=\
 	$(OBJ_DIR)/Logger.o     \
 	$(OBJ_DIR)/main.o       \
 	$(OBJ_DIR)/Date.o       \
-	$(OBJ_DIR)/Util.o
+	$(OBJ_DIR)/Util.o       
 
 all: executable
 

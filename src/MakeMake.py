@@ -17,10 +17,8 @@ class Config:
         self.abs_makefile_path = abspath(self.makefile_path)
 
         self.exe_directory = self.project_root_directory + "/bin"
-        self.abs_exe_directory = abspath(self.exe_directory)
 
         self.object_directory = self.project_root_directory + "/bin/obj"
-        self.abs_object_directory = abspath(self.object_directory)
 
         # Set up makefile variables.
         # @TODO I don't actually ever fill these variables in yet.
@@ -42,43 +40,44 @@ class Config:
         self.makevar_OBJ_FILES = " # Empty" # Empty until we look through the files.
 
         # Set up 'allways' makefile code.
-        self.copy_pasta = """
-    # Run stuff
-    .PHONY: run
-    run:
-    	./$(EXE_DIR)/$(EXE_NAME)
+        self.copy_pasta = \
+"""
+# Run stuff
+.PHONY: run
+run:
+	./$(EXE_DIR)/$(EXE_NAME)
 
-    .PHONY: runVal
-    runVal:
-    	valgrind ./$(EXE_DIR)/$(EXE_NAME)
-
-
-    # Clean
-    .PHONY: clean
-    clean:
-    	rm -rf $(OBJ_DIR)/*.o $(EXE_DIR)/$(EXE_NAME) $(EXE_DIR)/*.dll $(TEST_DIR)/* *~*
+.PHONY: runVal
+runVal:
+	valgrind ./$(EXE_DIR)/$(EXE_NAME)
 
 
-    # Memes
-    .PHONY: urn
-    urn:
-    	@echo "You don't know how to make an urn."
+# Clean
+.PHONY: clean
+clean:
+	rm -rf $(OBJ_DIR)/*.o $(EXE_DIR)/$(EXE_NAME) $(EXE_DIR)/*.dll *~*
 
 
-    .PHONY: rum
-    rum:
-    	@echo "Why is the rum gone?!"
+# Memes
+.PHONY: urn
+urn:
+	@echo "You don't know how to make an urn."
 
 
-    .PHONY: ruin
-    ruin:
-    	@echo "You ruined it! :("
+.PHONY: rum
+rum:
+	@echo "Why is the rum gone?!"
 
 
-    .PHONY: riun
-    riun:
-    	@echo "Dam dude... can't even ruin it right. :\\"
-        """
+.PHONY: ruin
+ruin:
+	@echo "You ruined it! :("
+
+
+.PHONY: riun
+riun:
+	@echo "Dam dude... can't even ruin it right. :\\"
+"""
 
     def set_project_root_directory(self, new_root):
         self.project_root_directory = new_root
@@ -314,7 +313,10 @@ def obj_list_to_str(obj_list):
     max_len = len(obj_list[0])
 
     for obj in obj_list:
-        padding = " " * ((max_len - len(obj)) + 1)
+        if obj == obj_list[-1]:
+            padding = ""
+        else:
+            padding = " " * ((max_len - len(obj)) + 1)
         obj_str += obj_prefix + obj + padding + "\\\n"
 
     # Remove the last trailing '\' and '\n'
