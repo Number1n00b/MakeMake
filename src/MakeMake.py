@@ -2,236 +2,152 @@ import subprocess # To run g++ commands to gather dependancies.
 import sys # For command line args.
 import os  # For file enumeration.
 
-"""
-@TODO: Modify this to use objects for rules and files, so that it's not just
-       a bunch of string passing, and so that the objects can have extra
-       rules attached to them. (Will help for tests, and CopyLibs).
-"""
+# ========= Configuration Storage ===========
+class Config:
+    # Always returns a default configuration.
+    def __init__(self):
+        # Set up environment variables.
+        self.project_root_directory = "."
+        self.abs_project_root_directory = abspath(self.project_root_directory)
+
+        self.project_source_directory = self.project_root_directory + "/src"
+        self.abs_project_source_directory = abspath(self.project_source_directory)
+
+        self.makefile_path = self.project_root_directory + "/Makefile"
+        self.abs_makefile_path = abspath(self.makefile_path)
+
+        self.exe_directory = self.project_root_directory + "/bin"
+        self.abs_exe_directory = abspath(self.exe_directory)
+
+        self.object_directory = self.project_root_directory + "/bin/obj"
+        self.abs_object_directory = abspath(self.object_directory)
+
+        # Set up makefile variables.
+        # @TODO I don't actually ever fill these variables in yet.
+        self.makevar_include_directories = " # Empty" # Empty until we look through the files.
+        self.makevar_lib_directories = " # Empty" # Empty until we look through the files.
+        self.makevar_LINK_COMMANDS = " # Empty" # Empty until we look through the files.
+
+        # There are no make rules until we analyse the files.
+        self.file_dependancies = {}
+
+        self.makevar_CC = "g++"
+        self.makevar_CFLAGS = "-std=c++11 -Wall -pedantic -g -ggdb -c"
+        self.makevar_EXE_NAME = "program"
+        self.makevar_COMPILE_WITH_CFLAGS = "$(CC) $(CFLAGS)"
+
+        # @TODO Make this only output with files that require it.
+        self.makevar_COMPILE_WITH_INCLUDES = "$(CC) $(CFLAGS) $(INCLUDE_DIRS)"
+
+        self.makevar_OBJ_FILES = " # Empty" # Empty until we look through the files.
+
+        # Set up 'allways' makefile code.
+        self.copy_pasta = """
+    # Run stuff
+    .PHONY: run
+    run:
+    	./$(EXE_DIR)/$(EXE_NAME)
+
+    .PHONY: runVal
+    runVal:
+    	valgrind ./$(EXE_DIR)/$(EXE_NAME)
+
+
+    # Clean
+    .PHONY: clean
+    clean:
+    	rm -rf $(OBJ_DIR)/*.o $(EXE_DIR)/$(EXE_NAME) $(EXE_DIR)/*.dll $(TEST_DIR)/* *~*
+
+
+    # Memes
+    .PHONY: urn
+    urn:
+    	@echo "You don't know how to make an urn."
+
+
+    .PHONY: rum
+    rum:
+    	@echo "Why is the rum gone?!"
+
+
+    .PHONY: ruin
+    ruin:
+    	@echo "You ruined it! :("
+
+
+    .PHONY: riun
+    riun:
+    	@echo "Dam dude... can't even ruin it right. :\\"
+        """
+
+    def set_project_root_directory(self, new_root):
+        self.project_root_directory = new_root
+        self.abs_project_root_directory = abspath(new_root)
+
+        self.set_project_source_directory(new_root + "/src")
+
+    def set_project_source_directory(self, new_source):
+        self.project_root_directory = new_source
+        self.abs_project_source_directory = abspath(new_source)
+
+    def set_makefile_path(self, new_path):
+        self.makefile_path = new_path
+        self.abs_makefile_path = abspath(new_path)
 
 # ========== Self Defined Errors ============
 class InvalidFileFormatError(Exception):
     def __init__(self, message):
         super().__init__(message)
 
-# ===== Valid Configuration File Flags ======
-VALID_CONFIG_FLAGS = {":ENVIRONMENT:" : ":END_ENVIRONMENT:", ":VARS:" : ":END_VARS:" , ":TESTS:" : ":END_TESTS:", ":ALLWAYS:" : ":END_ALLWAYS:"}
 
 # ============= Main Program ================
 
 
-# ======== Data structure for config ========
-
-# Command line arguments: (Will override defaults, and everything in config file)
-# --root-dir
-# --src-dir
-# --config-file
-# --output-name
-
-MAX_LINE_WIDTH = 80
-
 def main():
     print("Running MakeMake...")
 
-    # @TODO be more robust in parsing command line args, and parse the rest too.
-    # (Right now we're just checking that the first arg is the config file name)
-    if len(sys.argv) == 1 or sys.argv[1].startswith("-"):
-        print("Using default configuration.")
-        config_file_name = None
+    config = Config()
+
+    if(len(sys.argv) > 1):
+        print("Creating makefile from root '{}'".format(sys.argv[1]))
+        config.set_project_root_directory(sys.argv[1])
     else:
-        config_file_name = sys.argv[1]
-        print("Attempting to parse config file '{}'...".format(config_file_name))
-
-    config, using_default = parse_config_file(config_file_name)
-
-    if using_default:
-        # Use all defaults.
         print("Creating default makefile...")
-    else:
-        # Use the config.
-        print("Creating makefile based on config file...")
 
-    discover_makefile_rules(config)
+    config.set_makefile_path("./TestMakefile")
 
+    discover_dependancies(config)
+
+    print("\nEnsuring path format correctness...")
+    make_dependancy_paths_relative(config)
+    fix_dependancy_path_format(config)
+    fix_dependancy_path_capitilisation(config)
+
+    print("\nWriting to '{}'...".format(config.abs_makefile_path))
     create_makefile(config)
+
+    print("Done")
 
     return 0
 
-# ======== Makefile Rule Creation  =========
-def discover_makefile_rules(config):
-    source_dir = config[":ENVIRONMENT:"]["PROJ_SOURCE_DIR"]
-
-    abs_src_dir = os.path.abspath(source_dir)
-
-    config["MAKE_RULES"] = {}
-    if not os.path.exists(abs_src_dir):
-        print("Error: The given source directory '{}' does not exist.".format(abs_src_dir))
-        exit(-1)
-
-    total_files = get_all_dependancies(config, abs_src_dir)
-    make_rule_paths_relative(config)
-
-    print("Generated {} rules.".format(total_files))
+def make_dependancy_paths_relative(config):
+    for rule in config.file_dependancies.keys():
+        config.file_dependancies[rule] = remove_proj_root_from_path(config.file_dependancies[rule], config.abs_project_root_directory)
 
 
-def get_all_dependancies(config, previous_dir_path, files_checked = 0):
-    # Get all files in the current directory.
-    for file in os.listdir(previous_dir_path):
-        abs_file_path = previous_dir_path + '\\' + file
-
-        # Recurse if the file is a directory, else analyze file for dependancies.
-        if os.path.isdir(abs_file_path):
-            #print("Entering {}".format(abs_file_path))
-            files_checked = get_all_dependancies(config, abs_file_path, files_checked)
-        else:
-            # Skip non-c/cpp files.
-            if (file.endswith('.c') or file.endswith('.cpp') or file.endswith('.cc')):
-                files_checked += 1
-                result, _ = run_command(["g++", "-std=c++11", "-MM", abs_file_path])
-                result = replace_slashes(result)
-
-                abs_root_path = os.path.abspath(config[":ENVIRONMENT:"]["PROJ_ROOT_DIR"])
-                config["MAKE_RULES"][remove_proj_root_from_path(abs_file_path, abs_root_path)] = result
-
-    return files_checked
+def fix_dependancy_path_format(config):
+    for file in config.file_dependancies.keys():
+        config.file_dependancies[file] = fix_format(config.file_dependancies[file])
 
 
-def replace_slashes(string):
-    result = list(string)
-    for ii in range(0, len(result) - 1):
-        if result[ii] == '\\' and not result[ii + 1] == '\n' and not result[ii + 2] == '\n':
-            result[ii] = "/"
-
-    return "".join(result)
-
-
-def re_capitalize_path(rule):
-    second_half = rule.split(":")[1]
-    old_path = second_half.replace(" ", "")
-    old_path = old_path.replace("\n", "")
-    old_path = old_path.replace("\t", "")
-    old_path = old_path.replace("\r", "")
-
-    if old_path[0] == '\\':
-        old_path = old_path.replace("\\", "", 1)
-
-    # At this point the old path is a list of dependancies seperated by '\'
-    dep_list = old_path.split('\\')
-    for dep in dep_list:
-        to_be_replaced, replaced_with = find_real_file_name(dep)
-        rule = rule.replace(to_be_replaced, replaced_with)
-
-    return rule
-
-
-def find_real_file_name(rel_path):
-    file = rel_path.split("/")[-1]
-
-    dir_path_list = rel_path.split("/")[0:-1]
-    dir_path =  os.getcwd()
-    for dir in dir_path_list:
-        dir_path += "/" + dir
-
-    for real_file in os.listdir(dir_path):
-        if real_file.lower() == file.lower():
-            return rel_path, rel_path.replace(file, real_file)
-
-    raise FileNotFoundError("Could not find real file name for '{}'".format(file))
-
-def remove_proj_root_from_path(path, abs_proj_root):
-    path = path.replace(abs_proj_root + "\\", "")
-    path = path.replace(abs_proj_root.lower() + "\\", "")
-    return path
-
-
-def make_rule_paths_relative(config):
-    abs_root_path = os.path.abspath(config[":ENVIRONMENT:"]["PROJ_ROOT_DIR"])
-    for rule in config["MAKE_RULES"].keys():
-        config["MAKE_RULES"][rule] = config["MAKE_RULES"][rule].replace(abs_root_path + "\\", "")
-        config["MAKE_RULES"][rule] = config["MAKE_RULES"][rule].replace(abs_root_path.lower() + "\\", "")
-
-
-# ====== Makefile Creation Functions =======
-def create_makefile(config):
-    makefile_path = config[":ENVIRONMENT:"]["PROJ_ROOT_DIR"] + "/" + config[":ENVIRONMENT:"]["MAKEFILE_NAME"]
-
-    # Now that we have all the rules, add a list of OBJ files to the vars.
-    obj_file_list = []
-    for rule in config["MAKE_RULES"].keys():
-        obj_name = config["MAKE_RULES"][rule].split(":")
-        obj_file_list.append(obj_name[0])
-
-    config[":VARS:"]["OBJ_FILES"] = obj_file_list
-
-    with open(makefile_path, "w") as makefile:
-        makefile.write("# This file was auto-generated by MakeMake.py\n")
-
-        write_makefile_vars(makefile, config[":VARS:"])
-
-        write_makefile_rules(makefile, config)
-
-        write_makefile_tests(makefile, config[":TESTS:"])
-
-        # Write the rest of the makefile.
-        makefile.write(config[":ALLWAYS:"] + "\n")
-
-
-def write_makefile_vars(makefile, make_vars):
-    makefile.write("CC=" + make_vars["CC"] + "\n")
-    makefile.write("CFLAGS=" + make_vars["CFLAGS"] + "\n" + "\n")
-
-    makefile.write("EXE_DIR=" + make_vars["EXE_DIR"] + "\n")
-    makefile.write("TEST_DIR=" + make_vars["TEST_DIR"] + "\n")
-    makefile.write("OBJ_DIR=" + make_vars["OBJ_DIR"] + "\n" + "\n")
-
-    makefile.write("EXE_NAME=" + make_vars["EXE_NAME"] + "\n" + "\n")
-
-    makefile.write("INCLUDE_DIRS=" + make_vars["INCLUDE_DIRS"] + "\n" + "\n")
-
-    makefile.write("LIB_DIRS=" + make_vars["LIB_DIRS"] + "\n")
-    makefile.write("LINK_COMMANDS=" + make_vars["LINK_COMMANDS"] + "\n" + "\n")
-
-    makefile.write("COMPILE_WITH_CFLAGS=" + make_vars["COMPILE_WITH_CFLAGS"] + "\n")
-    makefile.write("COMPILE_WITH_INCLUDES=" + make_vars["COMPILE_WITH_INCLUDES"] + "\n" + "\n")
-
-    obj_files_str = obj_list_to_str(make_vars["OBJ_FILES"])
-    makefile.write("OBJ_FILES=" + obj_files_str + "\n" + "\n")
-
-
-def write_makefile_rules(makefile, config):
-    abs_root_path = os.path.abspath(config[":ENVIRONMENT:"]["PROJ_ROOT_DIR"]).replace("\\", "/")
-
-    make_rules = config["MAKE_RULES"]
-
-    makefile.write("all: executable\n\n")
-
-    makefile.write("executable: $(OBJ_FILES)\n")
-    makefile.write("\t$(CC) $(OBJ_FILES) -o $(EXE_DIR)/$(EXE_NAME) $(LIB_DIRS) $(LINK_COMMANDS)\n\n")
-
-    obj_prefix = "$(OBJ_DIR)/"
-
-    for rule in make_rules:
-        rel_source_name = rule.replace("\\", "/")
-        deps = make_rules[rule].replace(abs_root_path + "/", "")
-        deps = deps.replace(abs_root_path.lower() + "/", "")
-        deps = fix_format(deps)
-
-        obj_name = deps.split(":")[0]
-
-        deps = re_capitalize_path(deps)
-
-        makefile.write(obj_prefix + deps)
-        command = "\t$(COMPILE_WITH_INCLUDES) " + rel_source_name + " -o " + obj_prefix + obj_name
-        makefile.write(command + "\n" + "\n")
-
-
-def fix_format(deps):
+def fix_format(dependancy_list):
     # Remove redundant newline stuff.
-    deps = deps.replace("\n", "")
-    deps = deps.replace("\r", "\n")
+    dependancy_list = dependancy_list.replace("\n", "")
+    dependancy_list = dependancy_list.replace("\r", "\n")
 
     # Prettify the padding.
-    padding_length = len(deps.split(":")[0]) + 2 + len("$(OBJ_DIR)/")
-    result = list(deps)
+    padding_length = len(dependancy_list.split(":")[0]) + 2 + len("$(OBJ_DIR)/")
+    result = list(dependancy_list)
 
     prev_char = ''
     for ii in range(0, len(result)):
@@ -242,230 +158,151 @@ def fix_format(deps):
 
     return "".join(result)
 
+def fix_dependancy_path_capitilisation(config):
+    keys = list(config.file_dependancies.keys())
+    for file in keys:
+        uncapitilised_dep_string = config.file_dependancies[file]
 
-def write_makefile_tests(makefile, make_tests):
-    pass
+        second_half = uncapitilised_dep_string.split(":")[1]
+        old_path = second_half.replace(" ", "")
+        old_path = old_path.replace("\n", "")
+        old_path = old_path.replace("\t", "")
+        old_path = old_path.replace("\r", "")
 
-# ======= Config Parsing Functions =========
+        if old_path[0] == '\\':
+            old_path = old_path.replace("\\", "", 1)
 
-# Returns: config, using_defaults
-#            dict, bool
-def parse_config_file(config_file_name):
-    config = get_default_config()
+        # At this point the old path is a list of dependancies seperated by '\'
+        dep_list = old_path.split('\\')
+        for dep in dep_list:
+            to_be_replaced, replaced_with = find_real_file_name(dep, config)
+            config.file_dependancies[file] = config.file_dependancies[file].replace(to_be_replaced, replaced_with)
 
-    if not config_file_name:
-        using_default = True
-        return config, using_default
+def find_real_file_name(rel_path, config):
+    file = rel_path.split("/")[-1]
 
-    using_default = False
+    dir_path_list = rel_path.split("/")[0:-1]
+    dir_path = config.abs_project_root_directory
+    for dir in dir_path_list:
+        dir_path += "/" + dir
 
-    try:
-        contents = []
-        with open(config_file_name, "r") as f:
-            for line in f:
-                contents.append(line.strip("\n"))
+    for real_file in os.listdir(dir_path):
+        if real_file.lower() == file.lower():
+            return rel_path, rel_path.replace(file, real_file)
 
-        if len(contents) == 0:
-            print("Warning: config file is empty.")
-            using_default = True
-            return config, using_default
+    raise FileNotFoundError("Could not find real file name for '{}'".format(file))
 
-        curr_line_number = 0
-        flag_line_number = 0
-        exit_flag_line_number = 0
 
-        while(curr_line_number < len(contents)):
-            # Ignore blank lines because they are not inside a flag block.
-            curr_line_number = eat_empty_lines(contents, curr_line_number)
-            curr_line = contents[curr_line_number]
+# ======== Makefile Rule Creation  =========
+def discover_dependancies(config):
+    print("\nDiscovering makefile rules for source folder '{}'\n".format(config.abs_project_source_directory))
 
-            # Ignore all lines starting with a '#' outside of flag blocks.
-            if curr_line.startswith('#'):
-                curr_line_number += 1
-                continue
+    if not os.path.exists(config.abs_project_source_directory):
+        print("Error: The given source directory '{}' does not exist.".format(config.abs_project_source_directory))
+        exit(-1)
 
-            # Check if the flag is valid.
-            if curr_line not in VALID_CONFIG_FLAGS.keys():
-                msg = "Config file has incorrect format. Flag '{}' is invalid. (Or text outside of flag block).".format(curr_line)
-                raise InvalidFileFormatError(msg)
-            else:
-                flag_line_number = curr_line_number
-                exit_flag_line_number = find_exit_flag(contents, curr_line_number, VALID_CONFIG_FLAGS[curr_line])
+    total_files = get_all_dependancies(config, config.abs_project_source_directory)
 
-                if not exit_flag_line_number:
-                    msg = "Config file has incorrect format. Flag '{}' has no exit flag ('{}').".format(curr_line, VALID_CONFIG_FLAGS[curr_line])
-                    raise InvalidFileFormatError(msg)
+    print("Discovered {} files.".format(total_files))
 
-                parse_flag_contents(config, contents, flag_line_number, exit_flag_line_number)
-                curr_line_number = exit_flag_line_number + 1
 
-    except FileNotFoundError as e:
-        print("\tConfig file '{}' not found.".format(config_file_name))
-        using_default = True
+def get_all_dependancies(config, previous_dir_path, files_checked = 0):
+    print("Checking: {}".format(previous_dir_path))
 
-    except IsADirectoryError as e:
-        print("\tGiven config file '{}' is a directory!".format(config_file_name))
-        using_default = True
+    # Get all files in the current directory.
+    for file in os.listdir(previous_dir_path):
+        abs_file_path = previous_dir_path + '/' + file
 
-    except InvalidFileFormatError as e:
-        print("\t", e, sep="")
-        using_default = True
+        # Recurse if the file is a directory, else analyze file for dependancies.
+        if os.path.isdir(abs_file_path):
+            files_checked = get_all_dependancies(config, abs_file_path, files_checked)
+        else:
+            # Only check c and cpp files.
+            if (file.endswith('.c') or file.endswith('.cpp')):
+                print("\tFound file: {}".format(file))
+                files_checked += 1
+                result, _ = run_command(["g++", "-std=c++11", "-MM", abs_file_path])
+                result = replace_slashes_with_fwd_slashes(result)
 
-        # Since the file didn't parse correctly, set the config back to defaults.
-        config = get_default_config()
+                relative_source_file_path = remove_proj_root_from_path(abs_file_path, config.abs_project_root_directory)
 
-    return config, using_default
+                # At this point the capitalisation is still wrong, and rules
+                # don't have relative paths.
+                config.file_dependancies[relative_source_file_path] = result
 
+    return files_checked
 
-def eat_empty_lines(contents, curr_line_number):
-    while(curr_line_number < len(contents) and len(contents[curr_line_number]) == 0):
-        curr_line_number += 1
 
-    return curr_line_number
+def replace_slashes_with_fwd_slashes(string):
+    result = list(string)
+    for ii in range(0, len(result) - 1):
+        if result[ii] == '\\' and not result[ii + 1] == '\n' and not result[ii + 2] == '\n':
+            result[ii] = "/"
 
+    return "".join(result)
 
-def find_exit_flag(contents, curr_line_number, exit_flag):
-    while curr_line_number < len(contents) - 1 and not contents[curr_line_number] == exit_flag:
-        curr_line_number += 1
+def remove_proj_root_from_path(path, abs_proj_root):
+    path = path.replace(abs_proj_root + "/", "")
+    path = path.replace(abs_proj_root.lower() + "/", "")
+    return path
 
-    if contents[curr_line_number] == exit_flag:
-        return curr_line_number
-    else:
-        return None
 
+# ====== Makefile Creation Functions =======
+def create_makefile(config):
+    # Now that we have all the rules, add a list of OBJ files to the vars.
+    obj_file_list = []
+    for rule in config.file_dependancies.keys():
+        obj_name = config.file_dependancies[rule].split(":")[0]
+        obj_file_list.append(obj_name)
 
-def get_default_config():
-    config = {}
+    config.makevar_OBJ_FILES = obj_file_list
 
-    # Set up environment variables.
-    env_vars = {}
+    with open(config.makefile_path, "w") as makefile:
+        makefile.write("# This file was auto-generated by MakeMake.py\n")
 
-    env_vars["PROJ_ROOT_DIR"] = "."
-    env_vars["PROJ_SOURCE_DIR"]  = env_vars["PROJ_ROOT_DIR"] + "/src"
+        write_makefile_vars(makefile, config)
 
-    env_vars["MAKEFILE_NAME"] = "Makefile"
+        write_makefile_rules(makefile, config)
 
-    config[":ENVIRONMENT:"] = env_vars
+        # Write the rest of the makefile.
+        makefile.write(config.copy_pasta + "\n")
 
-    # Set up makefile variables.
-    makefile_vars = {}
-    makefile_vars["CC"] = "g++"
-    makefile_vars["CFLAGS"] = "-std=c++11 -Wall -pedantic -g -ggdb -c"
 
-    makefile_vars["EXE_DIR"] = "bin"
-    makefile_vars["TEST_DIR"] = "bin/tests"
-    makefile_vars["OBJ_DIR"] = "bin/obj"
+def write_makefile_vars(makefile, config):
+    makefile.write("CC=" + config.makevar_CC + "\n")
+    makefile.write("CFLAGS=" + config.makevar_CFLAGS + "\n" + "\n")
 
-    makefile_vars["EXE_NAME"] = "program"
+    makefile.write("EXE_DIR=" + config.exe_directory + "\n")
+    makefile.write("OBJ_DIR=" + config.object_directory + "\n" + "\n")
 
-    makefile_vars["INCLUDE_DIRS"] = " # Empty"   # Empty until we look through the files.
+    makefile.write("EXE_NAME=" + config.makevar_EXE_NAME + "\n" + "\n")
 
-    makefile_vars["LIB_DIRS"] = " # Empty"       # Empty until we look through the files.
-    makefile_vars["LINK_COMMANDS"] = " # Empty"  # Empty until we look through the files.
+    makefile.write("INCLUDE_DIRS=" + config.makevar_include_directories + "\n" + "\n")
 
-    makefile_vars["COMPILE_WITH_CFLAGS"] = "$(CC) $(CFLAGS)"
-    makefile_vars["COMPILE_WITH_INCLUDES"] = "$(CC) $(CFLAGS) $(INCLUDE_DIRS)"
+    makefile.write("LIB_DIRS=" + config.makevar_lib_directories + "\n")
+    makefile.write("LINK_COMMANDS=" + config.makevar_LINK_COMMANDS + "\n" + "\n")
 
-    makefile_vars["OBJ_FILES"] = " # Empty"      # Empty until we look through the files.
+    makefile.write("COMPILE_WITH_CFLAGS=" + config.makevar_COMPILE_WITH_CFLAGS + "\n")
+    makefile.write("COMPILE_WITH_INCLUDES=" + config.makevar_COMPILE_WITH_INCLUDES + "\n" + "\n")
 
-    config[":VARS:"] = makefile_vars
+    obj_files_str = obj_list_to_str(config.makevar_OBJ_FILES)
+    makefile.write("OBJ_FILES=" + obj_files_str + "\n" + "\n")
 
-    # Set up test cases. (Empty unless user specifies).
-    tests = {}
+def write_makefile_rules(makefile, config):
+    makefile.write("all: executable\n\n")
 
-    config[":TESTS:"] = tests
+    makefile.write("executable: $(OBJ_FILES)\n")
+    makefile.write("\t$(CC) $(OBJ_FILES) -o $(EXE_DIR)/$(EXE_NAME) $(LIB_DIRS) $(LINK_COMMANDS)\n\n")
 
-    # Set up rules. (Empty until we look through the files).
-    rules = {}
+    obj_prefix = "$(OBJ_DIR)/"
 
-    config[":RULES:"] = rules
+    for source_name in config.file_dependancies.keys():
+        deps = config.file_dependancies[source_name]
+        obj_name = deps.split(":")[0]
 
-    # Set up 'allways' makefile code.
-    allways = """
-# Run stuff
-.PHONY: run
-run:
-	./$(EXE_DIR)/$(EXE_NAME)
-
-.PHONY: runVal
-runVal:
-	valgrind ./$(EXE_DIR)/$(EXE_NAME)
-
-
-# Clean
-.PHONY: clean
-clean:
-	rm -rf $(OBJ_DIR)/*.o $(EXE_DIR)/$(EXE_NAME) $(EXE_DIR)/*.dll $(TEST_DIR)/* *~*
-
-
-# Memes
-.PHONY: urn
-urn:
-	@echo "You don't know how to make an urn."
-
-
-.PHONY: rum
-rum:
-	@echo "Why is the rum gone?!"
-
-
-.PHONY: ruin
-ruin:
-	@echo "You ruined it! :("
-
-
-.PHONY: riun
-riun:
-	@echo "Dam dude... can't even ruin it right. :\\"
-    """
-
-    config[":ALLWAYS:"] = allways
-
-    return config
-
-
-def parse_flag_contents(config, contents, start_line, end_line):
-    # At this point the tag should be valid, so we don't worry about keyerror here.
-    tag = contents[start_line]
-
-    curr_line_number = start_line + 1
-
-    if tag == ":ENVIRONMENT:" or tag == ":VARS:":
-        while curr_line_number != end_line:
-            curr_line = contents[curr_line_number]
-
-            # Skip comments and empty lines.
-            if len(curr_line) == 0 or curr_line.startswith("#"):
-                curr_line_number += 1
-                continue
-
-            split_line = curr_line.split("=", 1)
-
-            var = split_line[0]
-            value = split_line[1]
-
-            if var not in config[tag].keys():
-                raise InvalidFileFormatError("Unknown variable '{}' in '{}'.".format(var, tag))
-
-            config[tag][var] = value
-            curr_line_number += 1
-
-        return
-
-    if tag == ":ALLWAYS:":
-        allways_str = ""
-        for ii in range(start_line + 1, end_line):
-            allways_str += contents[ii] + "\n"
-
-        config[tag] = allways_str
-        return
-
-    print("\tUnprocessed tag:", tag)
-
-# =========== Util ===========
-def run_command(command):
-    result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    return str(result.stdout.decode("utf-8"))[0:-1], result
+        makefile.write(obj_prefix + deps)
+        command = "\t$(COMPILE_WITH_INCLUDES) " + source_name + " -o " + obj_prefix + obj_name
+        makefile.write(command + "\n" + "\n")
 
 
 def obj_list_to_str(obj_list):
@@ -473,9 +310,12 @@ def obj_list_to_str(obj_list):
 
     obj_prefix = "\t$(OBJ_DIR)/"
 
+    obj_list = sorted(obj_list, key=len, reverse=True)
+    max_len = len(obj_list[0])
+
     for obj in obj_list:
-        # If the total length is too long, go to a new line.
-        obj_str += obj_prefix + obj + "\\\n"
+        padding = " " * ((max_len - len(obj)) + 1)
+        obj_str += obj_prefix + obj + padding + "\\\n"
 
     # Remove the last trailing '\' and '\n'
     obj_str = obj_str[0:-2]
@@ -483,33 +323,13 @@ def obj_list_to_str(obj_list):
     return obj_str
 
 
-# @ Depracted, use if you want obj file list to be more compact.
-def old_obj_list_to_str(obj_list):
-    obj_str = "\\\n"
+# =========== Util ===========
+def run_command(command):
+    result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    return str(result.stdout.decode("utf-8"))[0:-1], result
 
-    obj_prefix = "$(OBJ_DIR)/"
-
-    curr_line = "\t"
-    for obj in obj_list:
-        if len(curr_line + obj_prefix + obj) > MAX_LINE_WIDTH:
-            if len(obj_prefix + obj) >= MAX_LINE_WIDTH:
-                # If the filename is just really long, give it its own line.
-                obj_str += "\t" + obj_prefix + obj + "\\\n"
-            else:
-                # If the total length is too long, go to a new line.
-                obj_str += curr_line + "\\\n"
-
-                # Reset the current line.
-                curr_line = "\t"
-
-        else: # The length is still fine, so just add the obj.
-            curr_line += obj_prefix + obj + " "
-
-    # Add the final line if it's not empty.
-    if not curr_line == "\t":
-        obj_str += curr_line
-
-    return obj_str
+def abspath(path):
+    return os.path.abspath(path).replace("\\", "/")
 
 # ======= Entry Point ========
 if __name__ == "__main__":
