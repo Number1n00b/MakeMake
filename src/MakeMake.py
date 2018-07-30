@@ -57,26 +57,6 @@ runVal:
 clean:
 	rm -rf $(OBJ_DIR)/*.o $(EXE_DIR)/$(EXE_NAME) $(EXE_DIR)/*.dll *~*
 
-
-# Memes
-.PHONY: urn
-urn:
-	@echo "You don't know how to make an urn."
-
-
-.PHONY: rum
-rum:
-	@echo "Why is the rum gone?!"
-
-
-.PHONY: ruin
-ruin:
-	@echo "You ruined it! :("
-
-
-.PHONY: riun
-riun:
-	@echo "Dam dude... can't even ruin it right. :\\"
 """
 
     def set_project_root_directory(self, new_root):
@@ -93,6 +73,13 @@ riun:
         self.makefile_path = new_path
         self.abs_makefile_path = abspath(new_path)
 
+    def copy_rules_from_file(self, input_file):
+        self.copy_pasta += "# Below was copied from input file {}.\n\n".format(input_file)
+
+        f = open(input_file, "r")
+        self.copy_pasta += f.read()
+        f.close()
+
 # ========== Self Defined Errors ============
 class InvalidFileFormatError(Exception):
     def __init__(self, message):
@@ -108,11 +95,19 @@ def main():
     config = Config()
 
     if(len(sys.argv) > 1):
-        print("Creating makefile from root '{}'".format(sys.argv[1]))
-        config.set_project_root_directory(sys.argv[1])
-
-        if(len(sys.argv) > 2 and sys.argv[2].startswith("--")):
-            config.set_makefile_path(sys.argv[2].split("=")[-1])
+        for arg in sys.argv[1:]:
+            print("Parsing arg: {}".format(arg))
+            if arg.startswith("--in"):
+                in_file = arg.split("=")[-1]
+                print("Copying all rules from '{}'".format(in_file))
+                config.copy_rules_from_file(in_file)
+            elif arg.startswith("--out"):
+                out_file = arg.split("=")[-1]
+                print("Output going to '{}'".format(out_file))
+                config.set_makefile_path(out_file)
+            else:
+                print("Creating makefile from root '{}'".format(sys.argv[1]))
+                config.set_project_root_directory(arg)
     else:
         print("Creating default makefile...")
 

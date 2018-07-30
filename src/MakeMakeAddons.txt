@@ -1,0 +1,26 @@
+# Tests
+testLL: $(OBJ_DIR)/LinkedList.o tests/LinkedListTest.cpp
+	$(COMPILE_WITH_CFLAGS) tests/LinkedListTest.cpp -c -o $(OBJ_DIR)/LinkedListTest.o
+	$(CC) $(OBJ_DIR)/LinkedList.o $(OBJ_DIR)/LinkedListTest.o -o $(TEST_DIR)/LinkedListTest
+	./$(TEST_DIR)/LinkedListTest
+
+
+# Memes
+.PHONY: urn
+urn:
+	@echo "You don't know how to make an urn."
+
+
+.PHONY: rum
+rum:
+	@echo "Why is the rum gone?!"
+
+
+.PHONY: ruin
+ruin:
+	@echo "You ruined it! :("
+
+
+.PHONY: riun
+riun:
+	@echo "Dam dude... can't even ruin it right. :\\"
