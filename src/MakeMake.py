@@ -80,6 +80,8 @@ clean:
         self.conf_file_used = True
         try:
             f = open(input_file, "r")
+            input_file = input_file.replace("\\", "/")
+            input_file = remove_proj_root_from_path(input_file, self.abs_project_root_directory)
             self.copy_pasta += "# Below was copied from input file {}.\n\n".format(input_file)
             self.copy_pasta += f.read()
             f.close()
