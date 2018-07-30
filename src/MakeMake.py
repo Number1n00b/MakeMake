@@ -39,6 +39,9 @@ class Config:
 
         self.makevar_OBJ_FILES = " # Empty" # Empty until we look through the files.
 
+        # Flag to keep track of if a config file was used. If not, a defualt will be used.
+        self.conf_file_used = False
+
         # Set up 'allways' makefile code.
         self.copy_pasta = \
 """
@@ -74,11 +77,24 @@ clean:
         self.abs_makefile_path = abspath(new_path)
 
     def copy_rules_from_file(self, input_file):
-        self.copy_pasta += "# Below was copied from input file {}.\n\n".format(input_file)
+        self.conf_file_used = True
+        try:
+            f = open(input_file, "r")
+            self.copy_pasta += "# Below was copied from input file {}.\n\n".format(input_file)
+            self.copy_pasta += f.read()
+            f.close()
+        except FileNotFoundError as e:
+            print("Error while loading config.")
+            print(e)
 
-        f = open(input_file, "r")
-        self.copy_pasta += f.read()
-        f.close()
+    def check_and_use_conf(self):
+        if self.conf_file_used:
+            return
+
+        self.conf_file_used = True
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        file_path = dir_path + "/MakeMake.conf"
+        self.copy_rules_from_file(file_path)
 
 # ========== Self Defined Errors ============
 class InvalidFileFormatError(Exception):
@@ -117,6 +133,8 @@ def main():
     make_dependancy_paths_relative(config)
     fix_dependancy_path_format(config)
     fix_dependancy_path_capitilisation(config)
+
+    config.check_and_use_conf()
 
     print("\nWriting to '{}'...".format(config.abs_makefile_path))
     create_makefile(config)
